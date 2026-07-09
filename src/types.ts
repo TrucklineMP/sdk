@@ -1,5 +1,3 @@
-export type ApiEnvironment = "production" | "development";
-
 export type TrucklineClientOptions = {
   /**
    * Public API key (`tlmp_api_...`) from the developer console.
@@ -7,15 +5,12 @@ export type TrucklineClientOptions = {
    */
   apiKey?: string;
   /**
-   * Override base URL. Defaults by `environment`.
+   * Override base URL. Defaults to production.
    * Examples:
    * - https://api.trucklinemp.com
-   * - https://api-dev.trucklinemp.com
    * - http://localhost:3000/api/v1
    */
   baseUrl?: string;
-  /** Defaults to production */
-  environment?: ApiEnvironment;
   /** Extra headers on every request */
   headers?: Record<string, string>;
   /** Fetch timeout in ms (default 30_000) */
@@ -43,7 +38,5 @@ export type PaginationQuery = {
   cursor?: string;
 };
 
-export const DEFAULT_BASE_URLS: Record<ApiEnvironment, string> = {
-  production: "https://api.trucklinemp.com",
-  development: "https://api-dev.trucklinemp.com",
-};
+/** Default Public API base URL (production). */
+export const DEFAULT_BASE_URL = "https://api.trucklinemp.com";

@@ -1,5 +1,2 @@
-# Copy to ~/.npmrc (user) or project .npmrc when installing the package.
-# Use a GitHub PAT with `read:packages` (and `write:packages` to publish).
-
-@trucklinemp:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+# Optional: for CI publish only (do not commit real tokens).
+# //registry.npmjs.org/:_authToken=${NPM_TOKEN}

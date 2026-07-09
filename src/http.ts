@@ -1,6 +1,6 @@
 import { TrucklineError, type TrucklineErrorBody } from "./errors.js";
 import type { RequestOptions, TrucklineClientOptions } from "./types.js";
-import { DEFAULT_BASE_URLS } from "./types.js";
+import { DEFAULT_BASE_URL } from "./types.js";
 
 function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, "");
@@ -48,10 +48,7 @@ export class HttpClient {
   private readonly userAgent: string;
 
   constructor(opts: TrucklineClientOptions) {
-    const env = opts.environment ?? "production";
-    this.baseUrl = normalizeBaseUrl(
-      opts.baseUrl ?? DEFAULT_BASE_URLS[env],
-    );
+    this.baseUrl = normalizeBaseUrl(opts.baseUrl ?? DEFAULT_BASE_URL);
     this.apiKey = opts.apiKey;
     this.defaultHeaders = { ...(opts.headers ?? {}) };
     this.timeoutMs = opts.timeoutMs ?? 30_000;

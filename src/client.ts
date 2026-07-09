@@ -20,7 +20,6 @@ import {
  *
  * const tl = new Truckline({
  *   apiKey: process.env.TRUCKLINE_API_KEY,
- *   environment: "production",
  * });
  *
  * const vtc = await tl.vtcs.get("my-vtc");

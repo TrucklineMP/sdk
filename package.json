@@ -1,6 +1,6 @@
 {
   "name": "@trucklinemp/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Official TypeScript SDK for the TrucklineMP public API",
   "license": "MIT",
   "author": "TrucklineMP",
@@ -30,11 +30,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trucklinemp/sdk.git"
+    "url": "git+https://github.com/trucklinemp/sdk.git",
+    "directory": "."
+  },
+  "homepage": "https://github.com/trucklinemp/sdk#readme",
+  "bugs": {
+    "url": "https://github.com/trucklinemp/sdk/issues"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "restricted"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "keywords": [
     "truckline",
