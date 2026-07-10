@@ -9,6 +9,21 @@ Docs: [TypeScript SDK](https://docs.trucklinemp.com/guides/developers/sdk/) · n
 
 ---
 
+## [0.2.1] — 2026-07-10
+
+### Added
+
+- **Achievements Public API**
+  - `tl.achievements.list()` → `GET /achievements` (active catalog)
+  - `tl.users.achievements(handleOrId)` → `GET /users/{handleOrId}/achievements` (grants include `grantedAt`)
+- Types: `PublicAchievement`, `PublicAchievementsCatalog`, `PublicUserAchievement`, `PublicUserAchievements`
+
+### Upgrade notes
+
+- Additive only; no breaking changes from 0.2.0.
+
+---
+
 ## [0.2.0] — 2026-07-10
 
 Major expansion of the official client: typed models, better HTTP reliability, pagination and batch helpers, OAuth, and webhooks.
@@ -72,5 +87,6 @@ Major expansion of the official client: typed models, better HTTP reliability, p
 
 ---
 
+[0.2.1]: https://github.com/trucklinemp/sdk/releases/tag/v0.2.1
 [0.2.0]: https://github.com/trucklinemp/sdk/releases/tag/v0.2.0
 [0.1.1]: https://github.com/trucklinemp/sdk/releases/tag/v0.1.1

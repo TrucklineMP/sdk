@@ -269,6 +269,27 @@ export type PublicRecognitionPrograms = {
   programs: PublicBadgeProgram[];
 };
 
+export type PublicAchievement = {
+  slug: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  color: string;
+  points: number;
+};
+
+export type PublicAchievementsCatalog = {
+  achievements: PublicAchievement[];
+};
+
+export type PublicUserAchievement = PublicAchievement & {
+  grantedAt: IsoDateString;
+};
+
+export type PublicUserAchievements = {
+  achievements: PublicUserAchievement[];
+};
+
 export type GameServer = {
   id?: string | number;
   name?: string;

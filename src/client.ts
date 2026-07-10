@@ -1,6 +1,7 @@
 import { HttpClient } from "./http.js";
 import type { RateLimitInfo, RequestOptions, TrucklineClientOptions } from "./types.js";
 import {
+  AchievementsResource,
   BansResource,
   EventsResource,
   GameResource,
@@ -22,6 +23,7 @@ export class Truckline {
   readonly bans: BansResource;
   readonly meta: MetaResource;
   readonly programs: ProgramsResource;
+  readonly achievements: AchievementsResource;
   readonly game: GameResource;
 
   static readonly VERSION = SDK_VERSION;
@@ -35,6 +37,7 @@ export class Truckline {
     this.bans = new BansResource(this.http);
     this.meta = new MetaResource(this.http);
     this.programs = new ProgramsResource(this.http);
+    this.achievements = new AchievementsResource(this.http);
     this.game = new GameResource(this.http);
   }
 

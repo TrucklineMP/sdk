@@ -2,6 +2,7 @@ import { chunkIds, normalizeIdList } from "./batch.js";
 import type { HttpClient } from "./http.js";
 import type {
   GameServer,
+  PublicAchievementsCatalog,
   PublicBanDetail,
   PublicBanListItem,
   PublicBadgeProgram,
@@ -13,6 +14,7 @@ import type {
   PublicRecognitionPrograms,
   PublicRules,
   PublicUser,
+  PublicUserAchievements,
   PublicUserBatchResponse,
   PublicUserBans,
   PublicUserProfileResponse,
@@ -353,6 +355,21 @@ export class UsersResource {
       `/users/${encodeURIComponent(String(userId))}/events`,
       withOpts(query, options),
     );
+  }
+
+  achievements(handleOrId: Id, options?: RequestOptions) {
+    return this.http.get<PublicUserAchievements>(
+      `/users/${encodeURIComponent(String(handleOrId))}/achievements`,
+      options,
+    );
+  }
+}
+
+export class AchievementsResource {
+  constructor(private readonly http: HttpClient) {}
+
+  list(options?: RequestOptions) {
+    return this.http.get<PublicAchievementsCatalog>("/achievements", options);
   }
 }
 
