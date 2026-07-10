@@ -1,5 +1,5 @@
 import { HttpClient } from "./http.js";
-import type { RequestOptions, TrucklineClientOptions } from "./types.js";
+import type { RateLimitInfo, RequestOptions, TrucklineClientOptions } from "./types.js";
 import {
   BansResource,
   EventsResource,
@@ -10,21 +10,8 @@ import {
   UsersResource,
   VtcsResource,
 } from "./resources.js";
+import { SDK_VERSION } from "./version.js";
 
-/**
- * Official TrucklineMP public API client.
- *
- * @example
- * ```ts
- * import { Truckline } from "@trucklinemp/sdk";
- *
- * const tl = new Truckline({
- *   apiKey: process.env.TRUCKLINE_API_KEY,
- * });
- *
- * const vtc = await tl.vtcs.get("my-vtc");
- * ```
- */
 export class Truckline {
   private readonly http: HttpClient;
 
@@ -36,6 +23,8 @@ export class Truckline {
   readonly meta: MetaResource;
   readonly programs: ProgramsResource;
   readonly game: GameResource;
+
+  static readonly VERSION = SDK_VERSION;
 
   constructor(options: TrucklineClientOptions = {}) {
     this.http = new HttpClient(options);
@@ -49,12 +38,18 @@ export class Truckline {
     this.game = new GameResource(this.http);
   }
 
-  /** Base URL the client is using (no trailing slash). */
   get baseUrl(): string {
     return this.http.baseUrl;
   }
 
-  /** Low-level escape hatch for paths not yet wrapped. */
+  get version(): string {
+    return SDK_VERSION;
+  }
+
+  get lastRateLimit(): RateLimitInfo | null {
+    return this.http.lastRateLimit;
+  }
+
   request<T = unknown>(
     method: string,
     path: string,
@@ -65,5 +60,9 @@ export class Truckline {
 
   get<T = unknown>(path: string, options?: RequestOptions): Promise<T> {
     return this.http.get<T>(path, options);
+  }
+
+  post<T = unknown>(path: string, options?: RequestOptions): Promise<T> {
+    return this.http.post<T>(path, options);
   }
 }

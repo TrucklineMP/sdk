@@ -1,12 +1,17 @@
 import { TrucklineError, type TrucklineErrorBody } from "./errors.js";
-import type { RequestOptions, TrucklineClientOptions } from "./types.js";
+import type {
+  RateLimitInfo,
+  RequestOptions,
+  TrucklineClientOptions,
+} from "./types.js";
 import { DEFAULT_BASE_URL } from "./types.js";
+import { SDK_VERSION } from "./version.js";
 
 function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-function buildUrl(
+export function buildUrl(
   baseUrl: string,
   path: string,
   query?: RequestOptions["query"],
@@ -34,8 +39,36 @@ function parseRetryAfter(headers: Headers): number | null {
   return null;
 }
 
+function parseHeaderInt(headers: Headers, name: string): number | null {
+  const raw = headers.get(name);
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function parseRateLimit(headers: Headers): RateLimitInfo {
+  return {
+    retryAfter: parseRetryAfter(headers),
+    limit:
+      parseHeaderInt(headers, "x-ratelimit-limit") ??
+      parseHeaderInt(headers, "ratelimit-limit"),
+    remaining:
+      parseHeaderInt(headers, "x-ratelimit-remaining") ??
+      parseHeaderInt(headers, "ratelimit-remaining"),
+    reset:
+      parseHeaderInt(headers, "x-ratelimit-reset") ??
+      parseHeaderInt(headers, "ratelimit-reset"),
+  };
+}
+
 async function sleep(ms: number): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
+}
+
+function jitterMs(baseSeconds: number): number {
+  const base = Math.max(0, baseSeconds) * 1000;
+  const jitter = Math.floor(Math.random() * 250);
+  return base + jitter;
 }
 
 export class HttpClient {
@@ -44,8 +77,13 @@ export class HttpClient {
   private readonly defaultHeaders: Record<string, string>;
   private readonly timeoutMs: number;
   private readonly maxRetries: number;
+  private readonly retryOnServerError: boolean;
   private readonly fetchImpl: typeof fetch;
   private readonly userAgent: string;
+  private readonly debug: boolean;
+  private readonly onRequest?: TrucklineClientOptions["onRequest"];
+  private readonly onResponse?: TrucklineClientOptions["onResponse"];
+  lastRateLimit: RateLimitInfo | null = null;
 
   constructor(opts: TrucklineClientOptions) {
     this.baseUrl = normalizeBaseUrl(opts.baseUrl ?? DEFAULT_BASE_URL);
@@ -53,8 +91,12 @@ export class HttpClient {
     this.defaultHeaders = { ...(opts.headers ?? {}) };
     this.timeoutMs = opts.timeoutMs ?? 30_000;
     this.maxRetries = opts.maxRetries ?? 1;
+    this.retryOnServerError = opts.retryOnServerError ?? true;
     this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
-    this.userAgent = opts.userAgent ?? `trucklinemp-sdk/0.1.0`;
+    this.userAgent = opts.userAgent ?? `trucklinemp-sdk/${SDK_VERSION}`;
+    this.debug = opts.debug ?? false;
+    this.onRequest = opts.onRequest;
+    this.onResponse = opts.onResponse;
   }
 
   async request<T = unknown>(
@@ -67,7 +109,11 @@ export class HttpClient {
 
     while (true) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+      let timedOut = false;
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, this.timeoutMs);
 
       const onAbort = () => controller.abort();
       if (options.signal) {
@@ -75,7 +121,13 @@ export class HttpClient {
         else options.signal.addEventListener("abort", onAbort, { once: true });
       }
 
+      const started = Date.now();
       try {
+        await this.onRequest?.({ method, url, attempt });
+        if (this.debug) {
+          console.debug(`[trucklinemp-sdk] → ${method} ${url} attempt=${attempt}`);
+        }
+
         const headers = new Headers({
           Accept: "application/json",
           ...this.defaultHeaders,
@@ -87,9 +139,7 @@ export class HttpClient {
         }
 
         const key =
-          options.apiKey === null
-            ? undefined
-            : (options.apiKey ?? this.apiKey);
+          options.apiKey === null ? undefined : (options.apiKey ?? this.apiKey);
         if (key) {
           headers.set(
             "authorization",
@@ -110,10 +160,22 @@ export class HttpClient {
           signal: controller.signal,
         });
 
-        if (res.status === 429 && attempt < this.maxRetries) {
-          const retryAfter = parseRetryAfter(res.headers) ?? 1;
+        this.lastRateLimit = parseRateLimit(res.headers);
+        const requestId =
+          res.headers.get("x-request-id") ??
+          res.headers.get("x-trucklinemp-request-id");
+
+        const shouldRetry429 = res.status === 429 && attempt < this.maxRetries;
+        const shouldRetry5xx =
+          this.retryOnServerError &&
+          res.status >= 500 &&
+          res.status < 600 &&
+          attempt < this.maxRetries;
+
+        if (shouldRetry429 || shouldRetry5xx) {
+          const retryAfter = this.lastRateLimit.retryAfter ?? 1;
           attempt += 1;
-          await sleep(retryAfter * 1000);
+          await sleep(jitterMs(retryAfter));
           continue;
         }
 
@@ -127,19 +189,32 @@ export class HttpClient {
           }
         }
 
+        await this.onResponse?.({
+          method,
+          url,
+          status: res.status,
+          requestId,
+          attempt,
+          durationMs: Date.now() - started,
+        });
+
+        if (this.debug) {
+          console.debug(
+            `[trucklinemp-sdk] ← ${res.status} ${method} ${url} ${Date.now() - started}ms`,
+          );
+        }
+
         if (!res.ok) {
           const envelope = data as { error?: TrucklineErrorBody } | null;
           const errBody = envelope?.error ?? (data as TrucklineErrorBody) ?? {};
           throw new TrucklineError({
             message:
-              errBody.message ||
-              `Request failed with status ${res.status}`,
+              errBody.message || `Request failed with status ${res.status}`,
             status: res.status,
             code: errBody.code,
-            requestId:
-              errBody.requestId ?? res.headers.get("x-request-id"),
+            requestId: errBody.requestId ?? requestId,
             details: errBody.details,
-            retryAfter: parseRetryAfter(res.headers),
+            retryAfter: this.lastRateLimit.retryAfter,
           });
         }
 
@@ -147,16 +222,24 @@ export class HttpClient {
       } catch (err) {
         if (err instanceof TrucklineError) throw err;
         if (err instanceof Error && err.name === "AbortError") {
+          const callerAborted = Boolean(options.signal?.aborted) && !timedOut;
           throw new TrucklineError({
-            message: "Request timed out or was aborted",
+            message: callerAborted ? "Request was aborted" : "Request timed out",
             status: 0,
-            code: "TIMEOUT",
+            code: callerAborted ? "ABORTED" : "TIMEOUT",
+            cause: err,
           });
+        }
+        if (attempt < this.maxRetries) {
+          attempt += 1;
+          await sleep(jitterMs(0.5 * attempt));
+          continue;
         }
         throw new TrucklineError({
           message: err instanceof Error ? err.message : "Network error",
           status: 0,
           code: "NETWORK_ERROR",
+          cause: err,
         });
       } finally {
         clearTimeout(timeout);
