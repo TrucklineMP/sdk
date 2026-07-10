@@ -12,6 +12,7 @@ export class TrucklineError extends Error {
   readonly requestId: string | null;
   readonly details: unknown;
   readonly retryAfter: number | null;
+  readonly causeError: unknown;
 
   constructor(opts: {
     message: string;
@@ -20,6 +21,7 @@ export class TrucklineError extends Error {
     requestId?: string | null;
     details?: unknown;
     retryAfter?: number | null;
+    cause?: unknown;
   }) {
     super(opts.message);
     this.name = "TrucklineError";
@@ -28,6 +30,7 @@ export class TrucklineError extends Error {
     this.requestId = opts.requestId ?? null;
     this.details = opts.details;
     this.retryAfter = opts.retryAfter ?? null;
+    this.causeError = opts.cause;
   }
 
   get isRateLimited(): boolean {
@@ -44,5 +47,21 @@ export class TrucklineError extends Error {
 
   get isForbidden(): boolean {
     return this.status === 403 || this.code === "FORBIDDEN";
+  }
+
+  get isTimeout(): boolean {
+    return this.code === "TIMEOUT";
+  }
+
+  get isNetworkError(): boolean {
+    return this.code === "NETWORK_ERROR" || this.code === "TIMEOUT";
+  }
+
+  get isServerError(): boolean {
+    return this.status >= 500 && this.status < 600;
+  }
+
+  get isValidationError(): boolean {
+    return this.status === 400 || this.code === "VALIDATION_ERROR";
   }
 }

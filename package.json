@@ -1,7 +1,7 @@
 {
   "name": "@trucklinemp/sdk",
-  "version": "0.1.1",
-  "description": "Official TypeScript SDK for the TrucklineMP public API",
+  "version": "0.2.0",
+  "description": "Official TypeScript SDK for the TrucklineMP public API, OAuth, and webhooks",
   "license": "MIT",
   "author": "TrucklineMP",
   "type": "module",
@@ -13,17 +13,31 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./oauth": {
+      "types": "./dist/oauth-entry.d.ts",
+      "import": "./dist/oauth-entry.js",
+      "require": "./dist/oauth-entry.cjs"
+    },
+    "./webhooks": {
+      "types": "./dist/webhooks-entry.d.ts",
+      "import": "./dist/webhooks-entry.js",
+      "require": "./dist/webhooks-entry.cjs"
     }
   },
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean --sourcemap",
+    "build": "tsup src/index.ts src/oauth-entry.ts src/webhooks-entry.ts --format cjs,esm --dts --clean --sourcemap",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
   "engines": {
     "node": ">=18"
@@ -33,7 +47,7 @@
     "url": "git+https://github.com/trucklinemp/sdk.git",
     "directory": "."
   },
-  "homepage": "https://github.com/trucklinemp/sdk#readme",
+  "homepage": "https://docs.trucklinemp.com/guides/developers/sdk/",
   "bugs": {
     "url": "https://github.com/trucklinemp/sdk/issues"
   },
@@ -47,11 +61,14 @@
     "ets2",
     "ats",
     "api",
-    "sdk"
+    "sdk",
+    "oauth",
+    "webhooks"
   ],
   "devDependencies": {
     "@types/node": "^20.17.0",
     "tsup": "^8.4.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^3.2.4"
   }
 }
