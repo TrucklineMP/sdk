@@ -76,3 +76,41 @@ describe("users.batch chunking", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("vtcs.batch chunking", () => {
+  it("splits over BATCH_MAX", async () => {
+    const ids = Array.from({ length: 51 }, (_, i) => i + 1);
+    const fetchImpl = vi.fn(async (url: string) => {
+      const u = new URL(url);
+      const chunk = (u.searchParams.get("ids") ?? "").split(",");
+      return new Response(
+        JSON.stringify({
+          vtcs: chunk.map((id) => ({
+            id: Number(id),
+            name: `VTC ${id}`,
+            handle: null,
+            description: "",
+            slogan: null,
+            profilePicture: null,
+            banner: null,
+            verified: false,
+            official: false,
+            partnered: false,
+            recruitmentOpen: true,
+            visibility: "public",
+            language: "en",
+            memberCount: 1,
+            createdAt: "2020-01-01T00:00:00.000Z",
+          })),
+        }),
+        { status: 200 },
+      );
+    });
+    const tl = new Truckline({
+      fetch: fetchImpl as unknown as typeof fetch,
+    });
+    const res = await tl.vtcs.batch(ids);
+    expect(res.vtcs).toHaveLength(51);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+});

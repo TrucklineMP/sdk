@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   createWebhookHandler,
+  getWebhookDeliveryId,
+  getWebhookEventType,
+  getWebhookSignature,
+  isWebhookEventType,
+  parseWebhookBody,
   signWebhookPayload,
   verifyWebhookSignature,
+  WEBHOOK_DELIVERY_HEADER,
+  WEBHOOK_EVENT_HEADER,
   WEBHOOK_SIGNATURE_HEADER,
 } from "../src/webhooks.js";
 
@@ -47,5 +54,35 @@ describe("webhooks", () => {
       headers: { [WEBHOOK_SIGNATURE_HEADER]: "sha256=nope" },
     });
     expect(result).toEqual({ ok: false, reason: "invalid_signature" });
+  });
+
+  it("createWebhookHandler rejects invalid json", async () => {
+    const raw = "not-json";
+    const sig = signWebhookPayload(raw, secret);
+    const handle = createWebhookHandler({
+      secret,
+      onEvent: async () => {},
+    });
+    const result = await handle({
+      rawBody: raw,
+      headers: { [WEBHOOK_SIGNATURE_HEADER]: sig },
+    });
+    expect(result).toEqual({ ok: false, reason: "invalid_json" });
+  });
+
+  it("parses webhook body and reads headers", () => {
+    const parsed = parseWebhookBody(body);
+    expect(parsed.type).toBe("user.banned");
+
+    const headers = {
+      [WEBHOOK_SIGNATURE_HEADER]: "sha256=abc",
+      [WEBHOOK_EVENT_HEADER]: "user.banned",
+      [WEBHOOK_DELIVERY_HEADER]: "del-1",
+    };
+    expect(getWebhookSignature(headers)).toBe("sha256=abc");
+    expect(getWebhookEventType(headers)).toBe("user.banned");
+    expect(getWebhookDeliveryId(headers)).toBe("del-1");
+    expect(isWebhookEventType("user.banned", "user.banned")).toBe(true);
+    expect(isWebhookEventType("user.updated", "user.banned")).toBe(false);
   });
 });
