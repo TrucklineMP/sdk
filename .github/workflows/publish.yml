@@ -39,6 +39,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Test
+        run: npm test
+
       - name: Publish to npm if version is new
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
